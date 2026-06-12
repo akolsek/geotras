@@ -83,6 +83,15 @@ class OpenmcInput:
 
         surfType, coeffs = open_mc_surface(surface.Type, surface.Surf, self.tolerances, self.numeric_format)
 
+        if surfType is None:
+            if surface.Index in self.surfaceTable:
+                raise RuntimeError(
+                    f"Surface {surface.Index} ({surface.Type}) is used in cell definitions "
+                    "but cannot be written in OpenMC format. The generated input would be invalid."
+                )
+            logger.warning(f"Unused surface {surface.Index} ({surface.Type}) cannot be written in OpenMC format. Skipped.")
+            return
+
         if not boundary:
             OMCsurf = '  <surface id="{}" type="{}" coeffs="{}" />\n'.format(surface.Index, surfType, coeffs)
         else:
@@ -159,6 +168,15 @@ import openmc
             out_xml=False,
             quadricForm=self.options.quadricPY,
         )
+
+        if surfType is None:
+            if surface.Index in self.surfaceTable:
+                raise RuntimeError(
+                    f"Surface {surface.Index} ({surface.Type}) is used in cell definitions "
+                    "but cannot be written in OpenMC format. The generated input would be invalid."
+                )
+            logger.warning(f"Unused surface {surface.Index} ({surface.Type}) cannot be written in OpenMC format. Skipped.")
+            return
 
         if not boundary:
             OMCsurf = f"S{surface.Index} = openmc.{surfType}({coeffs})\n"

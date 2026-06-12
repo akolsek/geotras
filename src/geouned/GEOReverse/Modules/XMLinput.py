@@ -179,7 +179,7 @@ def selectCells(cellList, config):
     # options are 'all' material
     if config["mat"][0] == "all":
         if config["cell"][0] == "all":
-            selected = cellList
+            selected = dict(cellList)
         elif config["cell"][0] == "exclude":
             for name, c in cellList.items():
                 if name not in config["cell"][1]:
@@ -227,7 +227,7 @@ def selectCells(cellList, config):
                 else:
                     selected[name] = c  # Fill cell are not tested against material number
         elif config["cell"][0] == "exclude":
-            for c in cellList:
+            for name, c in cellList.items():
                 if c.FILL is None:
                     if c.MAT in config["mat"][1]:
                         if name not in config["cell"][1]:
@@ -272,6 +272,11 @@ def processSurfaces(UCells, Surfaces):
                 print(c.name)
                 print(m)
                 print(c.geom.str)
+            if surf not in Surfaces:
+                raise ValueError(
+                    f"Cell {c.name} references surface {surf}, which could not be converted "
+                    "(unsupported or invalid surface definition)."
+                )
             pos = c.geom.replace(surf, Surfaces[surf].id, pos)
 
 

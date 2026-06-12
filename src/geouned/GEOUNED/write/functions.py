@@ -161,7 +161,7 @@ def write_sequence_serpent(seq):
             if type(e) is int:
                 terms.append(str(e))
             else:
-                terms.append(write_sequence_mcnp(e))
+                terms.append(write_sequence_serpent(e))
 
         if seq.operator == "AND":
             line = f"({' '.join(terms)})"
@@ -326,7 +326,8 @@ def mcnp_surface(id, Type, surf, options, tolerances, numeric_format):
 
     elif Type == "Cone":
         Apex = surf.Apex * 0.1
-        Dir = surf.Axis * 0.1
+        Dir = FreeCAD.Vector(surf.Axis)
+        Dir.normalize()
         tan = math.tan(surf.SemiAngle)
         X_dir = FreeCAD.Vector(1, 0, 0)
         Y_dir = FreeCAD.Vector(0, 1, 0)
@@ -489,6 +490,9 @@ def mcnp_surface(id, Type, surf, options, tolerances, numeric_format):
 
 
 def open_mc_surface(Type, surf, tolerances, numeric_format, out_xml=True, quadricForm=False):
+    omc_surf = None
+    coeffs = ""
+
     if Type == "Plane":
         A = surf.Axis.x
         B = surf.Axis.y
@@ -741,7 +745,7 @@ def serpent_surface(id, Type, surf, options, tolerance, numeric_format):
                 serpent_def = f"surf {id} plane {A:{numeric_format.P_d}} {B:{numeric_format.P_d}} {C:{numeric_format.P_d}} {D/10:{numeric_format.P_d}}"
 
     elif Type == "Cylinder":
-        Dir = surf.Axis
+        Dir = FreeCAD.Vector(surf.Axis)
         Dir.normalize()
         Pos = surf.Center * 0.1
         rad = surf.Radius * 0.1
@@ -754,12 +758,13 @@ def serpent_surface(id, Type, surf, options, tolerance, numeric_format):
                 f"surf {id} cyly {Pos.x:{numeric_format.C_xyz}} {Pos.z:{numeric_format.C_xyz}} {rad:{numeric_format.C_r}}"
             )
         elif is_parallel(Dir, FreeCAD.Vector(0, 0, 1), tolerance.angle):
-            serpent_def = f"surf {id} cylz {rad:{numeric_format.C_r}}"
+            serpent_def = (
+                f"surf {id} cylz {Pos.x:{numeric_format.C_xyz}} {Pos.y:{numeric_format.C_xyz}} {rad:{numeric_format.C_r}}"
+            )
         else:
-            # Is not still working fine
             Q = q_form.q_form_cyl(Dir, Pos, rad)
             serpent_def = """\
-surf quadratic  {v[0]:{aTof}} {v[1]:{aTof}} {v[2]:{aTof}}
+surf {} quadratic {v[0]:{aTof}} {v[1]:{aTof}} {v[2]:{aTof}}
           {v[3]:{aTof}} {v[4]:{aTof}} {v[5]:{aTof}}
           {v[6]:{gToi}} {v[7]:{gToi}} {v[8]:{gToi}}
           {v[9]:{j}} """.format(
@@ -772,7 +777,8 @@ surf quadratic  {v[0]:{aTof}} {v[1]:{aTof}} {v[2]:{aTof}}
 
     elif Type == "Cone":
         Apex = surf.Apex * 0.1
-        Dir = surf.Axis * 0.1
+        Dir = FreeCAD.Vector(surf.Axis)
+        Dir.normalize()
         tan = math.tan(surf.SemiAngle)
         X_dir = FreeCAD.Vector(1, 0, 0)
         Y_dir = FreeCAD.Vector(0, 1, 0)
@@ -785,7 +791,7 @@ surf quadratic  {v[0]:{aTof}} {v[1]:{aTof}} {v[2]:{aTof}}
             sheet = 1
             if is_opposite(Dir, X_dir, tolerance.angle):
                 sheet = -1
-            serpent_def = "surf ckx {:{xyz}} {:{xyz}} {:{xyz}} {:{t2}} {}".format(
+            serpent_def = "surf {} ckx {:{xyz}} {:{xyz}} {:{xyz}} {:{t2}} {}".format(
                 id,
                 Apex.x,
                 Apex.y,
@@ -799,7 +805,7 @@ surf quadratic  {v[0]:{aTof}} {v[1]:{aTof}} {v[2]:{aTof}}
             sheet = 1
             if is_opposite(Dir, Y_dir, tolerance.angle):
                 sheet = -1
-            serpent_def = "surf cky {:{xyz}} {:{xyz}} {:{xyz}} {:{t2}} {}".format(
+            serpent_def = "surf {} cky {:{xyz}} {:{xyz}} {:{xyz}} {:{t2}} {}".format(
                 id,
                 Apex.x,
                 Apex.y,
@@ -813,7 +819,7 @@ surf quadratic  {v[0]:{aTof}} {v[1]:{aTof}} {v[2]:{aTof}}
             sheet = 1
             if is_opposite(Dir, Z_dir, tolerance.angle):
                 sheet = -1
-            serpent_def = "surf ckz {:{xyz}} {:{xyz}} {:{xyz}} {:{t2}} {}".format(
+            serpent_def = "surf {} ckz {:{xyz}} {:{xyz}} {:{xyz}} {:{t2}} {}".format(
                 id,
                 Apex.x,
                 Apex.y,
@@ -825,6 +831,17 @@ surf quadratic  {v[0]:{aTof}} {v[1]:{aTof}} {v[2]:{aTof}}
             )
         else:
             Q = q_form.q_form_cone(Dir, Apex, tan)
+            serpent_def = """\
+surf {} quadratic {v[0]:{aTof}} {v[1]:{aTof}} {v[2]:{aTof}}
+          {v[3]:{aTof}} {v[4]:{aTof}} {v[5]:{aTof}}
+          {v[6]:{gToi}} {v[7]:{gToi}} {v[8]:{gToi}}
+          {v[9]:{j}} """.format(
+                id,
+                v=Q,
+                aTof=numeric_format.GQ_1to6,
+                gToi=numeric_format.GQ_7to9,
+                j=numeric_format.GQ_10,
+            )
 
     elif Type == "Sphere":
         rad = surf.Radius * 0.1
@@ -833,7 +850,7 @@ surf quadratic  {v[0]:{aTof}} {v[1]:{aTof}} {v[2]:{aTof}}
         serpent_def = f"surf {id} sph {pnt.x:{numeric_format.S_xyz}} {pnt.y:{numeric_format.S_xyz}} {pnt.z:{numeric_format.S_xyz}} {rad:{numeric_format.S_r}}"
 
     elif Type == "Torus":
-        Dir = surf.Axis
+        Dir = FreeCAD.Vector(surf.Axis)
         Dir.normalize()
         Pos = surf.Center * 0.1
         radMaj = surf.MajorRadius * 0.1
@@ -948,7 +965,8 @@ def phits_surface(id, Type, surf, options, tolerance, numeric_format):
 
     elif Type == "Cone":
         Apex = surf.Apex * 0.1
-        Dir = surf.Axis * 0.1
+        Dir = FreeCAD.Vector(surf.Axis)
+        Dir.normalize()
         tan = math.tan(surf.SemiAngle)
         X_dir = FreeCAD.Vector(1, 0, 0)
         Y_dir = FreeCAD.Vector(0, 1, 0)

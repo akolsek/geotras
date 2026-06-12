@@ -187,8 +187,13 @@ C **************************************************************
         if MCNP_def:
             MCNP_def += "\n"
             self.inpfile.write(MCNP_def)
+        elif surface.Index in self.surfaceTable:
+            raise RuntimeError(
+                f"Surface {surface.Index} ({surface.Type}) is used in cell definitions "
+                "but cannot be written in MCNP format. The generated input would be invalid."
+            )
         else:
-            logger.info(f"Surface {surface.Type} cannot be written in MCNP input")
+            logger.warning(f"Unused surface {surface.Index} ({surface.Type}) cannot be written in MCNP format. Skipped.")
         return
 
     def write_mat_block(self):
