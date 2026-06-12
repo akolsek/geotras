@@ -1137,10 +1137,7 @@ def trim(surfDef, lineLength=80):
 
 def cut_line(line, lineLength):
     tabNumber = 10
-    while True:
-        pos = line.rfind(" ")
-        if pos <= lineLength:
-            break
+    pos = line.rfind(" ", 0, lineLength + 1)
 
     line1 = line[0:pos]
     line2 = line[pos + 1 :]

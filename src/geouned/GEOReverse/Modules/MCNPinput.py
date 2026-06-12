@@ -139,12 +139,15 @@ class McnpInput:
         while True:
             level += 1
             univLevel[level] = set()
-            for c in reversed(containers):
+            remaining = []
+            for c in containers:
                 if c.U in currentLevel:
                     c.Level = level
                     nextLevel.append(c.FILL)
                     univLevel[level].add(c.FILL)
-                    containers.remove(c)
+                else:
+                    remaining.append(c)
+            containers = remaining
 
             if nextLevel == []:
                 break
@@ -184,7 +187,7 @@ class McnpInput:
                 newSurfaces[newkey] = self.surfaces[k]
 
             if c.likeCell:
-                c.geom = self.getCell(c.likeCell, settings, process=False).geom
+                c.geom = self.GetCell(c.likeCell, settings, process=False).geom
                 c.likeCell = None
                 substituteLikeCell({c.name: c}, newSurfaces)
 
@@ -764,29 +767,26 @@ def Get_primitive_surfaces(mcnp_surfaces, scale=10.0):
                 params = (X_vec, MCNPparams[0] * scale)
             elif len(MCNPparams) == 4:
                 if (abs(MCNPparams[1] - MCNPparams[3])) > 1.0e-12:
-                    Stype = "cone"
                     dblsht = False
                     t = (MCNPparams[3] - MCNPparams[1]) / (MCNPparams[2] - MCNPparams[0])
                     x = MCNPparams[0] - MCNPparams[1] / t
                     if (MCNPparams[0] - x) * (MCNPparams[2] - x) > 0:
+                        Stype = "cone"
                         p = FreeCAD.Vector(x, 0.0, 0.0)
                         if (MCNPparams[0] - x) > 0:
                             v = X_vec
                         else:
                             v = negX_vec
                         if scale != 1.0:
-                            p *= scale
+                            p = p.multiply(scale)
                         params = (p, v, abs(t), dblsht)
                 elif abs(MCNPparams[1]) < 1.0e-12:
-                    Stype = "plane"
                     if (abs(MCNPparams[0] - MCNPparams[2])) < 1.0e-12:
+                        Stype = "plane"
                         params = (X_vec, MCNPparams[0] * scale)
                 else:
                     Stype = "cylinder"
-                    if scale != 1.0:
-                        p = p.multiply(scale)
-                        R *= scale
-                    params = (origin, X_vec, MCNPparams[1])
+                    params = (origin, X_vec, MCNPparams[1] * scale)
             else:
                 print("not implemented surfaces defined by point with more than 2couples of value")
 
@@ -796,11 +796,11 @@ def Get_primitive_surfaces(mcnp_surfaces, scale=10.0):
                 params = (Y_vec, MCNPparams[0] * scale)
             elif len(MCNPparams) == 4:
                 if (abs(MCNPparams[1] - MCNPparams[3])) > 1.0e-12:
-                    Stype = "cone"
                     dblsht = False
                     t = (MCNPparams[3] - MCNPparams[1]) / (MCNPparams[2] - MCNPparams[0])
                     y = MCNPparams[0] - MCNPparams[1] / t
                     if (MCNPparams[0] - y) * (MCNPparams[2] - y) > 0:
+                        Stype = "cone"
                         p = FreeCAD.Vector(0.0, y, 0.0)
                         if (MCNPparams[0] - y) > 0:
                             v = Y_vec
@@ -810,15 +810,12 @@ def Get_primitive_surfaces(mcnp_surfaces, scale=10.0):
                             p = p.multiply(scale)
                         params = (p, v, abs(t), dblsht)
                 elif abs(MCNPparams[1]) < 1.0e-12:
-                    Stype = "plane"
                     if (abs(MCNPparams[0] - MCNPparams[2])) < 1.0e-12:
+                        Stype = "plane"
                         params = (Y_vec, MCNPparams[0] * scale)
                 else:
                     Stype = "cylinder"
-                    if scale != 1.0:
-                        p = p.multiply(scale)
-                        R *= scale
-                    params = (origin, Y_vec, MCNPparams[1])
+                    params = (origin, Y_vec, MCNPparams[1] * scale)
             else:
                 print("not implemented surfaces defined by point with more than 2couples of value")
 
@@ -828,11 +825,11 @@ def Get_primitive_surfaces(mcnp_surfaces, scale=10.0):
                 params = (Z_vec, MCNPparams[0] * scale)
             elif len(MCNPparams) == 4:
                 if (abs(MCNPparams[1] - MCNPparams[3])) > 1.0e-12:
-                    Stype = "cone"
                     dblsht = False
                     t = (MCNPparams[3] - MCNPparams[1]) / (MCNPparams[2] - MCNPparams[0])
                     z = MCNPparams[0] - MCNPparams[1] / t
                     if (MCNPparams[0] - z) * (MCNPparams[2] - z) > 0:
+                        Stype = "cone"
                         p = FreeCAD.Vector(0.0, 0.0, z)
                         if (MCNPparams[0] - z) > 0:
                             v = Z_vec
@@ -842,15 +839,12 @@ def Get_primitive_surfaces(mcnp_surfaces, scale=10.0):
                             p = p.multiply(scale)
                         params = (p, v, abs(t), dblsht)
                 elif abs(MCNPparams[1]) < 1.0e-12:
-                    Stype = "plane"
                     if (abs(MCNPparams[0] - MCNPparams[2])) < 1.0e-12:
+                        Stype = "plane"
                         params = (Z_vec, MCNPparams[0] * scale)
                 else:
                     Stype = "cylinder"
-                    if scale != 1.0:
-                        p = p.multiply(scale)
-                        R *= scale
-                    params = (origin, Z_vec, MCNPparams[1])
+                    params = (origin, Z_vec, MCNPparams[1] * scale)
             else:
                 print("not implemented surfaces defined by point with more than 2couples of value")
 

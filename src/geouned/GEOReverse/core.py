@@ -139,6 +139,8 @@ class CsgToCad:
             if Ustart in Univ:
                 UnivCell.level = lev
                 break
+        else:
+            raise ValueError(f"Universe {Ustart} not found in the model")
 
         if depth == -1:
             levelMax = len(self.geometry.levels)
@@ -191,6 +193,8 @@ class CsgToCad:
             if Ustart in Univ:
                 UnivCell.level = lev
                 break
+        else:
+            raise ValueError(f"Universe {Ustart} not found in the model")
 
         if depth == -1:
             levelMax = len(self.geometry.levels) - 1
